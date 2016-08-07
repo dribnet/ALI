@@ -77,6 +77,10 @@ class ALI(Initializable, Random):
     def sample(self, z):
         return self.decoder.apply(z)
 
+    @application(inputs=['x'], outputs=['encoded'])
+    def encode(self, x):
+        return self.encoder.apply(x)
+
     @application(inputs=['x'], outputs=['reconstructions'])
     def reconstruct(self, x):
         return self.decoder.apply(self.encoder.apply(x))
