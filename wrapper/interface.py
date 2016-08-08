@@ -4,10 +4,13 @@ from blocks.serialization import load
 from blocks.utils import shared_floatx
 
 class AliModel:
-    def __init__(self, filename):
-        with open(filename, 'rb') as src:
-            main_loop = load(src)
-            self.model, = main_loop.model.top_bricks
+    def __init__(self, filename=None, model=None):
+        if model is not None:
+            self.model, = model.top_bricks
+        else:
+            with open(filename, 'rb') as src:
+                main_loop = load(src)
+                self.model, = main_loop.model.top_bricks
 
     def encode_images(self, images):
         x = tensor.tensor4('features')
