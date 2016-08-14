@@ -15,7 +15,9 @@ class AliModel:
     def encode_images(self, images):
         x = tensor.tensor4('features')
         latents = theano.function([x], self.model.encode(x))(images)
-        num_samples, z_dim, _, _ = latents.shape
+        num_samples, z_dim, _x, _y = latents.shape
+        # print("SO", num_samples, z_dim, _x, _y)
+        # print("AND", images.shape)
         return latents.reshape(num_samples, z_dim)
 
     def get_zdim(self):

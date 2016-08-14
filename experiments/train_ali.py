@@ -36,38 +36,73 @@ LEAK = 0.02
 
 
 def create_model_brick(model_stream, image_size, z_dim):
-    layers = [
-        conv_brick(2, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(5, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(7, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(1, 1, 2 * z_dim)]
+
+    if image_size == 64:
+        encoder_layers = [
+            conv_brick(2, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(5, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(1, 1, 2 * z_dim)]
+
+        decoder_layers = [
+            conv_transpose_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(7, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(5, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(2, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(1, 1, NUM_CHANNELS), Logistic()]
+
+        x_disc_layers = [
+            conv_brick(2, 1, 64), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(5, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK)]
+
+    elif image_size == 128:
+        encoder_layers = [
+            conv_brick(4, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(1, 1, 2 * z_dim)]
+
+        decoder_layers = [
+            conv_transpose_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(4, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(1, 1, NUM_CHANNELS), Logistic()]
+
+        x_disc_layers = [
+            conv_brick(4, 1, 64), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK)]
+
+    print("Building network with {} enc, {} dec, and {} x_disc layers".format(
+        len(encoder_layers), len(decoder_layers), len(x_disc_layers)))
+
     encoder_mapping = ConvolutionalSequence(
-        layers=layers, num_channels=NUM_CHANNELS, image_size=(image_size, image_size),
+        layers=encoder_layers, num_channels=NUM_CHANNELS, image_size=(image_size, image_size),
         use_bias=False, name='encoder_mapping')
     encoder = GaussianConditional(encoder_mapping, name='encoder')
 
-    layers = [
-        conv_transpose_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_transpose_brick(7, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_transpose_brick(5, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_transpose_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_transpose_brick(2, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(1, 1, NUM_CHANNELS), Logistic()]
     decoder_mapping = ConvolutionalSequence(
-        layers=layers, num_channels=z_dim, image_size=(1, 1), use_bias=False,
+        layers=decoder_layers, num_channels=z_dim, image_size=(1, 1), use_bias=False,
         name='decoder_mapping')
     decoder = DeterministicConditional(decoder_mapping, name='decoder')
 
-    layers = [
-        conv_brick(2, 1, 64), LeakyRectifier(leak=LEAK),
-        conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(5, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(7, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-        conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK)]
     x_discriminator = ConvolutionalSequence(
-        layers=layers, num_channels=NUM_CHANNELS, image_size=(image_size, image_size),
+        layers=x_disc_layers, num_channels=NUM_CHANNELS, image_size=(image_size, image_size),
         use_bias=False, name='x_discriminator')
     x_discriminator.push_allocation_config()
 
