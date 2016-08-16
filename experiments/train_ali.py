@@ -15,6 +15,7 @@ from blocks.initialization import IsotropicGaussian, Constant
 from blocks.main_loop import MainLoop
 from blocks.model import Model
 from blocks.roles import INPUT
+from blocks.serialization import load
 from theano import tensor
 
 from ali.algorithms import ali_algorithm
@@ -147,8 +148,12 @@ def create_model_brick(model_stream, image_size, z_dim):
     return ali
 
 
-def create_models(model_stream, image_size, z_dim):
-    ali = create_model_brick(model_stream, image_size, z_dim)
+def create_models(model_stream, image_size, z_dim, oldmodel=None):
+    if oldmodel is None:
+        ali = create_model_brick(model_stream, image_size, z_dim)
+    else:
+        ali = oldmodel
+
     x = tensor.tensor4('features')
     z = ali.theano_rng.normal(size=(x.shape[0], z_dim, 1, 1))
 
@@ -165,6 +170,7 @@ def create_models(model_stream, image_size, z_dim):
         return Model(cg.outputs)
 
     model = _create_model(with_dropout=False)
+
     with batch_normalization(ali):
         bn_model = _create_model(with_dropout=True)
 
@@ -177,7 +183,7 @@ def create_models(model_stream, image_size, z_dim):
 
 def create_main_loop(save_path, subdir, dataset, splits, color_convert,
         batch_size, monitor_every, checkpoint_every, num_epochs,
-        image_size, z_dim):
+        image_size, z_dim, oldmodel):
 
     if dataset is None:
         streams = create_celeba_data_streams(batch_size, batch_size)
@@ -198,7 +204,14 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
 
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
 
-    model, bn_model, bn_updates = create_models(model_stream, image_size, z_dim)
+    old_model = None
+    if oldmodel is not None:
+        print("Initializing parameters with old model {}".format(oldmodel))
+        with open(oldmodel, 'rb') as src:
+            old_main_loop = load(src)
+            old_model, = old_main_loop.model.top_bricks
+
+    model, bn_model, bn_updates = create_models(model_stream, image_size, z_dim, old_model)
     ali, = bn_model.top_bricks
     discriminator_loss, generator_loss = bn_model.outputs
 
@@ -231,8 +244,10 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
         ProgressBar(),
         Printing(),
     ]
+
     main_loop = MainLoop(model=bn_model, data_stream=main_loop_stream,
                          algorithm=algorithm, extensions=extensions)
+
     return main_loop
 
 
@@ -263,9 +278,12 @@ if __name__ == "__main__":
                         default=123, help="Stop training after num-epochs.")
     parser.add_argument("--z-dim", type=int, dest="z_dim",
                         default=256, help="Z-vector dimension")
+    parser.add_argument("--oldmodel", type=str, default=None,
+                        help="Use a model file created by a previous run as\
+                        a starting point for parameters")
     args = parser.parse_args()
     splits = args.splits.split(",")
     create_main_loop(args.model, args.subdir, args.dataset, splits,
         args.color_convert, args.batch_size, args.monitor_every,
         args.checkpoint_every, args.num_epochs, args.image_size,
-        args.z_dim).run()
+        args.z_dim, args.oldmodel).run()
