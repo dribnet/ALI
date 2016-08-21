@@ -227,22 +227,31 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
     monitored_variables = (
         [v for v in model.auxiliary_variables if 'norm' not in v.name] +
         model.outputs)
+    train_monitoring = DataStreamMonitoring(
+        bn_monitored_variables, train_monitor_stream, prefix="train",
+        updates=bn_updates, after_epoch=False, before_first_epoch=True,
+        every_n_epochs=monitor_every)
+    valid_monitoring = DataStreamMonitoring(
+        monitored_variables, valid_monitor_stream, prefix="valid",
+        after_epoch=False, before_first_epoch=False,
+        every_n_epochs=monitor_every)
+    checkpoint = Checkpoint(save_path, every_n_epochs=checkpoint_every,
+        before_training=True, after_epoch=True, after_training=True,
+        use_cpickle=True)
+    sampling_checkpoint =  SampleCheckpoint(interface=AliModel, z_dim=z_dim,
+        image_size=(image_size, image_size), channels=NUM_CHANNELS,
+        dataset=dataset, split=splits[1], save_subdir=subdir,
+        before_training=True, after_epoch=True)
+
     extensions = [
         Timing(),
         FinishAfter(after_n_epochs=num_epochs),
-        DataStreamMonitoring(
-            bn_monitored_variables, train_monitor_stream, prefix="train",
-            updates=bn_updates, before_first_epoch=True,
-            every_n_epochs=monitor_every),
-        DataStreamMonitoring(
-            monitored_variables, valid_monitor_stream, prefix="valid",
-            before_first_epoch=False, every_n_epochs=monitor_every),
-        Checkpoint(save_path, every_n_epochs=checkpoint_every,
-            before_training=True, after_epoch=True, after_training=True,
-            use_cpickle=True),
-        SampleCheckpoint(interface=AliModel, z_dim=z_dim, image_size=(image_size, image_size), channels=NUM_CHANNELS, dataset=dataset, split=splits[1], save_subdir=subdir, before_training=True, after_epoch=True),
-        ProgressBar(),
+        checkpoint,
+        sampling_checkpoint,
+        train_monitoring,
+        valid_monitoring,
         Printing(),
+        ProgressBar(),
     ]
 
     main_loop = MainLoop(model=bn_model, data_stream=main_loop_stream,
