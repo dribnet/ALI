@@ -89,6 +89,36 @@ def create_model_brick(model_stream, image_size, z_dim):
             conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK)]
 
+    elif image_size == 256:
+        encoder_layers = [
+            conv_brick(4, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(1, 1, 2 * z_dim)]
+
+        decoder_layers = [
+            conv_transpose_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(4, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(1, 1, NUM_CHANNELS), Logistic()]
+
+        x_disc_layers = [
+            conv_brick(4, 1, 64), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK)]
+
     print("Building network with {} enc, {} dec, and {} x_disc layers".format(
         len(encoder_layers), len(decoder_layers), len(x_disc_layers)))
 
@@ -229,7 +259,7 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
         model.outputs)
     train_monitoring = DataStreamMonitoring(
         bn_monitored_variables, train_monitor_stream, prefix="train",
-        updates=bn_updates, after_epoch=False, before_first_epoch=True,
+        updates=bn_updates, after_epoch=False, before_first_epoch=False,
         every_n_epochs=monitor_every)
     valid_monitoring = DataStreamMonitoring(
         monitored_variables, valid_monitor_stream, prefix="valid",
