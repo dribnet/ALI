@@ -24,7 +24,7 @@ from ali.bricks import (ALI, GaussianConditional, DeterministicConditional,
 from ali.streams import create_celeba_data_streams
 from ali.utils import get_log_odds, conv_brick, conv_transpose_brick, bn_brick
 
-from wrapper.interface import AliModel
+from ali.interface import AliModel
 from chips.samplecheckpoint import SampleCheckpoint
 from chips.fuel_helper import create_custom_streams
 
