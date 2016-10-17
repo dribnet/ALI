@@ -25,8 +25,8 @@ from ali.streams import create_celeba_data_streams
 from ali.utils import get_log_odds, conv_brick, conv_transpose_brick, bn_brick
 
 from ali.interface import AliModel
-from chips.samplecheckpoint import SampleCheckpoint
-from chips.fuel_helper import create_custom_streams
+from plat.training.samplecheckpoint import SampleCheckpoint
+from plat.fuel_helper import create_custom_streams
 
 NUM_CHANNELS = 3
 GAUSSIAN_INIT = IsotropicGaussian(std=0.01)
