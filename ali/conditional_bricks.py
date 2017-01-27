@@ -145,7 +145,9 @@ class GaussianConditional(Initializable, Random):
                 return dim
         else:
             if name == 'output':
-                return self.mapping.output_dim // 2
+                # HACK: right way is not working
+                return (256,)
+                # return self.mapping.output_dim // 2
             elif name == 'input_':
                 return self.mapping.input_dim
             else:
@@ -290,8 +292,26 @@ class ConditionalALI(Initializable, Random):
     @application(inputs=['x', 'y'], outputs=['reconstructions'])
     def reconstruct(self, x, y):
         embeddings = self.embedder.apply(y)
-        return self.decoder.apply(self.encoder.apply(x, embeddings),
-                                  embeddings)
+        encoded = self.encoder.apply(x, embeddings)
+        decoded = self.decoder.apply(encoded, embeddings)
+        return decoded
+
+    @application(inputs=['y'], outputs=['embeddings'])
+    def embed(self, y):
+        embeddings = self.embedder.apply(y)
+        return embeddings
+
+    @application(inputs=['x', 'y'], outputs=['encoded'])
+    def encode(self, x, y):
+        embeddings = self.embedder.apply(y)
+        encoded = self.encoder.apply(x, embeddings)
+        return encoded
+
+    @application(inputs=['z', 'y'], outputs=['decoded'])
+    def decode(self, z, y):
+        embeddings = self.embedder.apply(y)
+        decoded = self.decoder.apply(z, embeddings)
+        return decoded
 
 
 if __name__ == '__main__':
