@@ -1,7 +1,7 @@
 """Functions for creating data streams."""
 from fuel.datasets import CIFAR10, SVHN, CelebA
 from fuel.datasets.toy import Spiral
-from fuel.schemes import ShuffledScheme
+from fuel.schemes import ShuffledScheme, SequentialScheme
 from fuel.streams import DataStream
 
 from .datasets import TinyILSVRC2012, GaussianMixture
@@ -58,9 +58,9 @@ def create_celeba_data_streams(batch_size, monitoring_batch_size,
         iteration_scheme=ShuffledScheme(
             5000, monitoring_batch_size, rng=rng))
     valid_monitor_stream = DataStream.default_stream(
-        valid_set,
-        iteration_scheme=ShuffledScheme(
-            5000, monitoring_batch_size, rng=rng))
+        dataset=valid_set,
+        iteration_scheme=SequentialScheme(
+            5000, monitoring_batch_size))
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
 
 
