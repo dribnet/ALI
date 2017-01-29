@@ -20,20 +20,28 @@ def main(main_loop, data_stream, num_pairs, num_steps, save_path):
     x = tensor.tensor4('features')
     y = tensor.matrix('y')
     z = tensor.tensor4('z')
+    e = tensor.tensor4('e')
     encode = theano.function([x, y], ali.encode(x, y))
     decode = theano.function([z, y], ali.decode(z, y))
+    embed = theano.function([y], ali.embed(y))
+    decode_embedded = theano.function([z, e], ali.decode_embedded(z, e))
 
     it = data_stream.get_epoch_iterator()
-    (from_x, from_y), (to_x, to_y) = next(it), next(it)
+    all_x, all_y = next(it)
+    from_x, from_y = all_x[0:num_pairs*2:2], all_y[0:num_pairs*2:2]
+    to_x, to_y = all_x[1:num_pairs*2:2], all_y[1:num_pairs*2:2]
     from_z, to_z = encode(from_x, from_y), encode(to_x, to_y)
 
+    from_e = embed(from_y)
+    to_e = embed(to_y)
+
     from_to_tensor = to_z - from_z
-    from_to_label_tensor = to_y - from_y
+    from_to_embedding_tensor = to_e - from_e
     between_x_list = [from_x]
     for alpha in numpy.linspace(0, 1, num_steps + 1):
         between_z = from_z + alpha * from_to_tensor
-        between_y = from_y
-        between_x_list.append(decode(between_z, between_y))
+        between_e = from_e + alpha * from_to_embedding_tensor
+        between_x_list.append(decode_embedded(between_z, between_e))
     between_x_list.append(to_x)
 
     figure = pyplot.figure()
@@ -81,8 +89,8 @@ if __name__ == "__main__":
         main_loop = load(src)
     num_pairs = args.num_pairs
     rng = numpy.random.RandomState()
-    _1, _2, data_stream = stream_functions[args.which_dataset](num_pairs,
-                                                               num_pairs,
+    _1, _2, data_stream = stream_functions[args.which_dataset](2*num_pairs,
+                                                               2*num_pairs,
                                                                sources=('features', 'targets'),
                                                                rng=rng)
     main(main_loop, data_stream, num_pairs, args.num_steps, args.save_path)

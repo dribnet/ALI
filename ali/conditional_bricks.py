@@ -313,6 +313,11 @@ class ConditionalALI(Initializable, Random):
         decoded = self.decoder.apply(z, embeddings)
         return decoded
 
+    @application(inputs=['z', 'e'], outputs=['decoded'])
+    def decode_embedded(self, z, e):
+        decoded = self.decoder.apply(z, e)
+        return decoded
+
 
 if __name__ == '__main__':
     import numpy as np
