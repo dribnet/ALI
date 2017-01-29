@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+import argparse
+import numpy as np
+
+import theano
+from theano import tensor
+from blocks.serialization import load
+
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import cm, pyplot
+
+from mpl_toolkits.axes_grid1 import ImageGrid
+
+
+def main(main_loop, nrows, ncols, save_path=None):
+    ali, = main_loop.model.top_bricks
+    input_shape = ali.encoder.get_dim('output')
+    # z = ali.theano_rng.normal(size=(nrows * ncols, 256), dtype=np.float32)
+    encoded = np.random.normal(size=(nrows * ncols, 256, 1, 1)).astype(np.float32)
+    labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
+    # labels = np.zeros(shape=(nrows * ncols, 40), dtype=np.uint8)
+    print("LABELS SHAPE: ", labels.shape)
+    print("ENCODED SHAPE: ", encoded.shape)
+    # y = ali.theano_rng.normal(size=(nrows * ncols,) + (40,))
+    z = tensor.tensor4('features')
+    y = tensor.matrix('y')
+    samples = theano.function([z, y], ali.decode(z, y))(encoded, labels)
+
+# ('LABELS SHAPE: ', (16, 40))
+# ('ENCODED SHAPE: ', (16, 256, 1, 1))
+    # x = ali.decode(z, y)
+    # samples = theano.function([], x)()
+
+    figure = pyplot.figure()
+    grid = ImageGrid(figure, 111, (nrows, ncols), axes_pad=0.1)
+
+    for sample, axis in zip(samples, grid):
+        axis.imshow(sample.transpose(1, 2, 0).squeeze(),
+                    cmap=cm.Greys_r, interpolation='nearest')
+        axis.set_yticklabels(['' for _ in range(sample.shape[1])])
+        axis.set_xticklabels(['' for _ in range(sample.shape[2])])
+        axis.axis('off')
+
+    if save_path is None:
+        pyplot.show()
+    else:
+        pyplot.savefig(save_path, transparent=True, bbox_inches='tight')
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Plot samples.")
+    parser.add_argument("main_loop_path", type=str,
+                        help="path to the pickled main loop.")
+    parser.add_argument("--nrows", type=int, default=10,
+                        help="number of rows of samples to display.")
+    parser.add_argument("--ncols", type=int, default=10,
+                        help="number of columns of samples to display.")
+    parser.add_argument("--save-path", type=str, default=None,
+                        help="where to save the generated samples.")
+    args = parser.parse_args()
+
+    with open(args.main_loop_path, 'rb') as src:
+        main(load(src), args.nrows, args.ncols, args.save_path)

@@ -20,7 +20,7 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     x = tensor.tensor4('features')
     y = tensor.matrix('y')
     examples, labels = next(data_stream.get_epoch_iterator())
-    labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
+    # labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
     # labels = numpy.zeros(shape=(examples.shape[0], 40), dtype=numpy.uint8)
     reconstructions = theano.function([x, y], ali.reconstruct(x, y))(examples, labels)
 
