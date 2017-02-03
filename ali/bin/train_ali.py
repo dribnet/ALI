@@ -38,7 +38,33 @@ LEAK = 0.02
 
 def create_model_brick(model_stream, image_size, z_dim):
 
-    if image_size == 64:
+    if image_size == 32:
+        encoder_layers = [
+            conv_brick(5, 1, 32), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 2, 64), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 1, 128), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 2, 256), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(),
+            conv_brick(1, 1, 512), bn_brick(), LeakyRectifier(),
+            conv_brick(1, 1, 2 * z_dim)]
+
+        decoder_layers = [
+            conv_transpose_brick(4, 1, 256), bn_brick(), LeakyRectifier(),
+            conv_transpose_brick(4, 2, 128), bn_brick(), LeakyRectifier(),
+            conv_transpose_brick(4, 1, 64), bn_brick(), LeakyRectifier(),
+            conv_transpose_brick(4, 2, 32), bn_brick(), LeakyRectifier(),
+            conv_transpose_brick(5, 1, 32), bn_brick(), LeakyRectifier(),
+            conv_transpose_brick(1, 1, 32), bn_brick(), LeakyRectifier(),
+            conv_brick(1, 1, NUM_CHANNELS), Logistic()]
+
+        x_disc_layers = [
+            conv_brick(5, 1, 32), LeakyRectifier(),
+            conv_brick(4, 2, 64), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 1, 128), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 2, 256), bn_brick(), LeakyRectifier(),
+            conv_brick(4, 1, 512), bn_brick(), LeakyRectifier()]
+
+    elif image_size == 64:
         encoder_layers = [
             conv_brick(2, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
