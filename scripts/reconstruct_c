@@ -14,7 +14,6 @@ from theano import tensor
 
 from ali import streams
 
-
 def main(main_loop, data_stream, nrows, ncols, save_path):
     ali, = main_loop.model.top_bricks
     x = tensor.tensor4('features')
@@ -33,8 +32,10 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     print("ENCODED SHAPE: ", encoded.shape)
     print("ENCODED[0]: ", encoded[0][:4])
 
-    figure = pyplot.figure()
-    grid = ImageGrid(figure, 111, (nrows, 2 * ncols), axes_pad=0.1)
+    # figure = pyplot.figure()
+    # grid = ImageGrid(figure, 111, (nrows, 2 * ncols), axes_pad=0.1)
+    figure = pyplot.figure(figsize=(2*(2 * ncols), 2*nrows), dpi=128)
+    grid = ImageGrid(figure, 111, (nrows, 2 * ncols), axes_pad=0.0)
     images = numpy.empty(
         (2 * nrows * ncols,) + examples.shape[1:], dtype=examples.dtype)
     images[::2] = examples
@@ -58,6 +59,7 @@ if __name__ == "__main__":
         'cifar10': streams.create_cifar10_data_streams,
         'svhn': streams.create_svhn_data_streams,
         'celeba': streams.create_celeba_data_streams,
+        'celeba_dlib2_128': streams.celeba_128_stream,
         'tiny_imagenet': streams.create_tiny_imagenet_data_streams}
     parser = argparse.ArgumentParser(description="Plot reconstructions.")
     parser.add_argument("which_dataset", type=str,

@@ -5,7 +5,7 @@ from fuel.schemes import ShuffledScheme, SequentialScheme
 from fuel.streams import DataStream
 
 from .datasets import TinyILSVRC2012, GaussianMixture
-
+from plat.fuel_helper import create_custom_streams
 
 def create_svhn_data_streams(batch_size, monitoring_batch_size, rng=None):
     train_set = SVHN(2, ('extra',), sources=('features',))
@@ -130,3 +130,17 @@ def create_gaussian_mixture_data_streams(batch_size, monitoring_batch_size,
         valid_set, iteration_scheme=ShuffledScheme(5000, batch_size, rng=rng))
 
     return main_loop_stream, train_monitor_stream, valid_monitor_stream
+
+def celeba_128_stream(batch_size, monitoring_batch_size,
+                               sources=('features', ), rng=None):
+
+    streams = create_custom_streams(filename="celeba_dlib2_128",
+                                    training_batch_size=batch_size,
+                                    monitoring_batch_size=monitoring_batch_size,
+                                    include_targets=True,
+                                    color_convert=False,
+                                    split_names=("train","valid","test"))
+
+    main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
+
+    return main_loop_stream, train_monitor_stream, valid_monitor_stream;

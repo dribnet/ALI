@@ -14,7 +14,6 @@ from theano import tensor
 
 from ali import streams
 
-
 def main(main_loop, data_stream, num_pairs, num_steps, save_path):
     ali, = main_loop.model.top_bricks
     x = tensor.tensor4('features')
@@ -44,8 +43,8 @@ def main(main_loop, data_stream, num_pairs, num_steps, save_path):
         between_x_list.append(decode_embedded(between_z, between_e))
     between_x_list.append(to_x)
 
-    figure = pyplot.figure()
-    grid = ImageGrid(figure, 111, (num_pairs, num_steps + 3), axes_pad=0.1)
+    figure = pyplot.figure(figsize=(2*(num_steps + 3), 2*num_pairs), dpi=128)
+    grid = ImageGrid(figure, 111, (num_pairs, num_steps + 3), axes_pad=0.0)
     images = numpy.empty(
         (num_pairs * (num_steps + 3),) + between_x_list[0].shape[1:],
         dtype=between_x_list[0].dtype)
@@ -64,12 +63,12 @@ def main(main_loop, data_stream, num_pairs, num_steps, save_path):
     else:
         pyplot.savefig(save_path, transparent=True, bbox_inches='tight')
 
-
 if __name__ == "__main__":
     stream_functions = {
         'cifar10': streams.create_cifar10_data_streams,
         'svhn': streams.create_svhn_data_streams,
         'celeba': streams.create_celeba_data_streams,
+        'celeba_dlib2_128': streams.celeba_128_stream,
         'tiny_imagenet': streams.create_tiny_imagenet_data_streams}
     parser = argparse.ArgumentParser(description="Plot interpolations.")
     parser.add_argument("which_dataset", type=str,
