@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+import argparse
+
+import numpy
+import theano
+from blocks.serialization import load
+
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import cm, pyplot
+
+from mpl_toolkits.axes_grid1 import ImageGrid
+from theano import tensor
+
+from ali import streams
+
+# male=20, attractive=2, young=39
+row_disable = [
+    [],
+    [39],
+    [20],
+    [20, 39]
+]
+
+row_enable = [
+    [20, 2, 39],
+    [20, 2],
+    [2, 39],
+    [2]
+]
+
+#  8 Black_Hair
+# 11 Brown_Hair
+#  9 Blond_Hair
+# 33 Wavy_Hair
+#  5 Bangs
+# 28 Receding_Hairline
+#  4 Bald
+# 31 Smiling
+# 21 Mouth_Slightly_Open
+# 15 Eyeglasses
+# 35 Wearing_Hat
+
+column_disable = [8, 11, 9, 33, 5, 28, 4, 31, 21, 15, 35]
+column_enable = [
+    [8],
+    [11],
+    [9],
+    [8, 33],
+    [9, 5],
+    [9, 28],
+    [9, 4],
+    [8, 31],
+    [8, 31, 21],
+    [8, 31, 21, 15],
+    [8, 31, 21, 15, 35]
+]
+
+def main(main_loop, data_stream, seed_offset, nrows, ncols, save_path):
+    ali, = main_loop.model.top_bricks
+    x = tensor.tensor4('features')
+    y = tensor.matrix('y')
+    z = tensor.tensor4('z')
+    examples, labels = next(data_stream.get_epoch_iterator())
+    # labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
+    # labels = numpy.zeros(shape=(examples.shape[0], 40), dtype=numpy.uint8)
+    reconstructions = theano.function([x, y], ali.reconstruct(x, y))(examples, labels)
+    embeddings = theano.function([y], ali.embed(y))(labels)
+    encoded = theano.function([x, y], ali.encode(x, y))(examples, labels)
+
+    seed_embedding = embeddings[seed_offset]
+    seed_labels = labels[seed_offset]
+    print(seed_labels)
+
+    seeds_e_list = []
+    seeds_l_list = []
+    for y_pos in range(nrows):
+        for x_pos in range(ncols):
+            label_copy = seed_labels.tolist()
+            seeds_e_list.append(seed_embedding.tolist())
+            if x_pos == 0:
+                seeds_l_list.append(label_copy)
+            else:
+                for ix in row_disable[y_pos]:
+                    label_copy[ix] = 0
+                for ix in row_enable[y_pos]:
+                    label_copy[ix] = 1
+                for ix in column_disable:
+                    label_copy[ix] = 0
+                for ix in column_enable[x_pos-1]:
+                    label_copy[ix] = 1
+                # print(label_copy)
+                seeds_l_list.append(label_copy)
+    seeds_e = numpy.asarray(seeds_e_list, dtype=examples.dtype)
+    seeds_l = numpy.asarray(seeds_l_list, dtype=numpy.uint8)
+
+    # labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
+
+    # print("ENCODED SHAPE: ", encoded.shape)
+    # print("ENCODED[0]: ", encoded[0][:4])
+    decoded = theano.function([z, y], ali.decode(z, y))(seeds_e, seeds_l)
+    # decoded = self.decoder.apply(encoded, embeddings)
+
+    # figure = pyplot.figure()
+    # grid = ImageGrid(figure, 111, (nrows, 2 * ncols), axes_pad=0.1)
+    figure = pyplot.figure(figsize=(2*ncols, 2*nrows), dpi=128)
+    grid = ImageGrid(figure, 111, (nrows, ncols), axes_pad=0.0)
+    images = numpy.empty(
+        (nrows * ncols,) + examples.shape[1:], dtype=examples.dtype)
+    images[::] = decoded
+    images[0] = examples[seed_offset]
+
+    for image, axis in zip(images, grid):
+        axis.imshow(image.transpose(1, 2, 0).squeeze(),
+                    cmap=cm.Greys_r, interpolation='nearest')
+        axis.set_yticklabels(['' for _ in range(image.shape[1])])
+        axis.set_xticklabels(['' for _ in range(image.shape[2])])
+        axis.axis('off')
+
+    if save_path is None:
+        pyplot.show()
+    else:
+        pyplot.savefig(save_path, transparent=True, bbox_inches='tight')
+
+
+if __name__ == "__main__":
+    stream_functions = {
+        'cifar10': streams.create_cifar10_data_streams,
+        'svhn': streams.create_svhn_data_streams,
+        'celeba': streams.create_celeba_data_streams,
+        'celeba_dlib2_128': streams.celeba_128_stream,
+        'tiny_imagenet': streams.create_tiny_imagenet_data_streams}
+    parser = argparse.ArgumentParser(description="Plot reconstructions.")
+    parser.add_argument("which_dataset", type=str,
+                        choices=tuple(stream_functions.keys()),
+                        help="which dataset to compute reconstructions on.")
+    parser.add_argument("main_loop_path", type=str,
+                        help="path to the pickled main loop.")
+    parser.add_argument("--nrows", type=int, default=4,
+                        help="number of rows of samples to display.")
+    parser.add_argument("--ncols", type=int, default=12,
+                        help="number of columns of samples to display.")
+    parser.add_argument("--seed-offset", type=int, default=0,
+                        help="index to seed image.")
+    parser.add_argument("--save-path", type=str, default=None,
+                        help="where to save the reconstructions.")
+    args = parser.parse_args()
+
+    with open(args.main_loop_path, 'rb') as src:
+        main_loop = load(src)
+    num_examples = args.nrows * args.ncols
+    rng = numpy.random.RandomState()
+    _1, _2, data_stream = stream_functions[args.which_dataset](num_examples,
+                                                               num_examples,
+                                                               sources=('features', 'targets'),
+                                                               rng=rng)
+    main(main_loop, data_stream, args.seed_offset, args.nrows, args.ncols, args.save_path)
