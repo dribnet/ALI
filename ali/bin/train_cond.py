@@ -36,7 +36,7 @@ LEARNING_RATE = 1e-4
 BETA1 = 0.5
 LEAK = 0.02
 
-NCLASSES = 40
+NCLASSES = 256
 NEMB = 256
 
 def create_model_brick(model_stream, image_size, z_dim):
@@ -222,6 +222,7 @@ def create_models(model_stream, image_size, z_dim, oldmodel=None):
 
 
 def create_main_loop(save_path, subdir, dataset, splits, color_convert,
+        random_spread, uuid_str,
         batch_size, monitor_every, checkpoint_every, num_epochs,
         image_size, z_dim, oldmodel):
 
@@ -235,12 +236,16 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
                                         monitoring_batch_size=batch_size,
                                         include_targets=True,
                                         color_convert=color_convert,
+                                        random_spread=random_spread,
+                                        uuid_str=uuid_str,
                                         split_names=splits)
         model_stream = create_custom_streams(filename=dataset,
                                         training_batch_size=500,
                                         monitoring_batch_size=500,
                                         include_targets=False,
                                         color_convert=color_convert,
+                                        random_spread=random_spread,
+                                        uuid_str=uuid_str,
                                         split_names=splits)[0]
 
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
@@ -317,6 +322,11 @@ if __name__ == "__main__":
     parser.add_argument('--color-convert', dest='color_convert',
                         default=False, action='store_true',
                         help="Convert source dataset to color from grayscale.")
+    parser.add_argument('--random-spread', dest='random_spread',
+                        default=False, action='store_true',
+                        help="Label dropout.")
+    parser.add_argument('--uuid-str', dest='uuid_str', type=str,
+                        default=None, help="pad labels with uuid")
     parser.add_argument("--batch-size", type=int, dest="batch_size",
                         default=100, help="Size of each mini-batch")
     parser.add_argument("--monitor-every", type=int, dest="monitor_every",
@@ -325,15 +335,17 @@ if __name__ == "__main__":
                         dest="checkpoint_every", default=1,
                         help="Frequency in epochs for checkpointing")
     parser.add_argument("--num-epochs", type=int, dest="num_epochs",
-                        default=123, help="Stop training after num-epochs.")
+                        default=100, help="Stop training after num-epochs.")
     parser.add_argument("--z-dim", type=int, dest="z_dim",
-                        default=256, help="Z-vector dimension")
+                        default=128, help="Z-vector dimension")
     parser.add_argument("--oldmodel", type=str, default=None,
                         help="Use a model file created by a previous run as\
                         a starting point for parameters")
     args = parser.parse_args()
     splits = args.splits.split(",")
     create_main_loop(args.model, args.subdir, args.dataset, splits,
-        args.color_convert, args.batch_size, args.monitor_every,
+        args.color_convert,
+        args.random_spread, args.uuid_str,
+        args.batch_size, args.monitor_every,
         args.checkpoint_every, args.num_epochs, args.image_size,
         args.z_dim, args.oldmodel).run()
