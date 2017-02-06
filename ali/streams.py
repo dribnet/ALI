@@ -144,3 +144,17 @@ def celeba_128_stream(batch_size, monitoring_batch_size,
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
 
     return main_loop_stream, train_monitor_stream, valid_monitor_stream;
+
+def celeba_64_stream(batch_size, monitoring_batch_size,
+                               sources=('features', ), rng=None):
+
+    streams = create_custom_streams(filename="celeba_dlib_64",
+                                    training_batch_size=batch_size,
+                                    monitoring_batch_size=monitoring_batch_size,
+                                    include_targets=True,
+                                    color_convert=False,
+                                    split_names=("train","valid","test"))
+
+    main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
+
+    return main_loop_stream, train_monitor_stream, valid_monitor_stream;
