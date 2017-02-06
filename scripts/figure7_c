@@ -68,7 +68,7 @@ def main(main_loop, data_stream, seed_offset, nrows, ncols, save_path):
     embeddings = theano.function([y], ali.embed(y))(labels)
     encoded = theano.function([x, y], ali.encode(x, y))(examples, labels)
 
-    seed_embedding = embeddings[seed_offset]
+    seed_embedding = encoded[seed_offset]
     seed_labels = labels[seed_offset]
     print(seed_labels)
 
