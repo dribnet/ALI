@@ -18,6 +18,7 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     ali, = main_loop.model.top_bricks
     x = tensor.tensor4('features')
     y = tensor.matrix('y')
+    z = tensor.tensor4('z')
     examples, labels = next(data_stream.get_epoch_iterator())
     # labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
     # labels = numpy.zeros(shape=(examples.shape[0], 40), dtype=numpy.uint8)
@@ -31,6 +32,10 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     encoded = theano.function([x, y], ali.encode(x, y))(examples, labels)
     print("ENCODED SHAPE: ", encoded.shape)
     print("ENCODED[0]: ", encoded[0][:4])
+
+    # encoded = numpy.zeros_like(encoded)
+    decoded = theano.function([z, y], ali.decode(z, y))(encoded, labels)
+    reconstructions = decoded
 
     # figure = pyplot.figure()
     # grid = ImageGrid(figure, 111, (nrows, 2 * ncols), axes_pad=0.1)
@@ -53,6 +58,13 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     else:
         pyplot.savefig(save_path, transparent=True, bbox_inches='tight')
 
+def load_birds_64(batch_size, monitoring_batch_size, sources, rng):
+    return streams.load_generic_stream("birds_64", ("train","test","test"),
+        batch_size, monitoring_batch_size, sources, rng)
+
+def load_birds_128(batch_size, monitoring_batch_size, sources, rng):
+    return streams.load_generic_stream("birds_128", ("train","test","test"),
+        batch_size, monitoring_batch_size, sources, rng)
 
 if __name__ == "__main__":
     stream_functions = {
@@ -60,6 +72,8 @@ if __name__ == "__main__":
         'svhn': streams.create_svhn_data_streams,
         'celeba': streams.create_celeba_data_streams,
         'celeba_dlib2_128': streams.celeba_128_stream,
+        'birds_64': load_birds_64,
+        'birds_128': load_birds_128,
         'tiny_imagenet': streams.create_tiny_imagenet_data_streams}
     parser = argparse.ArgumentParser(description="Plot reconstructions.")
     parser.add_argument("which_dataset", type=str,

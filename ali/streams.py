@@ -3,6 +3,7 @@ from fuel.datasets import CIFAR10, SVHN, CelebA
 from fuel.datasets.toy import Spiral
 from fuel.schemes import ShuffledScheme, SequentialScheme
 from fuel.streams import DataStream
+from fuel.transformers import ForceFloatX
 
 from .datasets import TinyILSVRC2012, GaussianMixture
 from plat.fuel_helper import create_custom_streams
@@ -148,7 +149,7 @@ def celeba_128_stream(batch_size, monitoring_batch_size,
 def celeba_64_stream(batch_size, monitoring_batch_size,
                                sources=('features', ), rng=None):
 
-    streams = create_custom_streams(filename="celeba_dlib_64",
+    streams = create_custom_streams(filename="celeba_dlib2_64",
                                     training_batch_size=batch_size,
                                     monitoring_batch_size=monitoring_batch_size,
                                     include_targets=True,
@@ -156,5 +157,22 @@ def celeba_64_stream(batch_size, monitoring_batch_size,
                                     split_names=("train","valid","test"))
 
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
+
+    return main_loop_stream, train_monitor_stream, valid_monitor_stream;
+
+def load_generic_stream(filename, split_names, batch_size, monitoring_batch_size,
+                               sources=('features', ), rng=None):
+
+    streams = create_custom_streams(filename=filename,
+                                    training_batch_size=batch_size,
+                                    monitoring_batch_size=monitoring_batch_size,
+                                    include_targets=True,
+                                    color_convert=False,
+                                    split_names=split_names)
+
+    main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
+    main_loop_stream = ForceFloatX(main_loop_stream)
+    train_monitor_stream = ForceFloatX(train_monitor_stream)
+    valid_monitor_stream = ForceFloatX(valid_monitor_stream)
 
     return main_loop_stream, train_monitor_stream, valid_monitor_stream;

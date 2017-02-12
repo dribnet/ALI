@@ -61,7 +61,12 @@ def main(main_loop, data_stream, seed_offset, nrows, ncols, save_path):
     x = tensor.tensor4('features')
     y = tensor.matrix('y')
     z = tensor.tensor4('z')
-    examples, labels = next(data_stream.get_epoch_iterator())
+    it = data_stream.get_epoch_iterator()
+    examples, labels = next(it)
+    while(seed_offset >= len(examples)):
+        print("Overflow: {} >= {}".format(seed_offset, len(examples)))
+        seed_offset -= len(examples)
+        examples, labels = next(it)
     # labels = numpy.random.randint(2, size=(examples.shape[0], 40), dtype=numpy.uint8)
     # labels = numpy.zeros(shape=(examples.shape[0], 40), dtype=numpy.uint8)
     reconstructions = theano.function([x, y], ali.reconstruct(x, y))(examples, labels)
@@ -69,6 +74,7 @@ def main(main_loop, data_stream, seed_offset, nrows, ncols, save_path):
     encoded = theano.function([x, y], ali.encode(x, y))(examples, labels)
 
     seed_embedding = encoded[seed_offset]
+    seed_embedding = numpy.zeros_like(seed_embedding)
     seed_labels = labels[seed_offset]
     print(seed_labels)
 
@@ -128,6 +134,7 @@ if __name__ == "__main__":
         'cifar10': streams.create_cifar10_data_streams,
         'svhn': streams.create_svhn_data_streams,
         'celeba': streams.create_celeba_data_streams,
+        'celeba_dlib2_64': streams.celeba_64_stream,
         'celeba_dlib2_128': streams.celeba_128_stream,
         'tiny_imagenet': streams.create_tiny_imagenet_data_streams}
     parser = argparse.ArgumentParser(description="Plot reconstructions.")

@@ -17,6 +17,7 @@ from blocks.model import Model
 from blocks.roles import INPUT
 from blocks.serialization import load
 from theano import tensor
+from fuel.transformers import ForceFloatX
 
 from ali.algorithms import ali_algorithm
 from ali.conditional_bricks import (EncoderMapping, Decoder,
@@ -36,7 +37,7 @@ LEARNING_RATE = 1e-4
 BETA1 = 0.5
 LEAK = 0.02
 
-NCLASSES = 256
+NCLASSES = 1024
 NEMB = 256
 
 def create_model_brick(model_stream, image_size, z_dim):
@@ -249,6 +250,9 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
                                         split_names=splits)[0]
 
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
+    main_loop_stream = ForceFloatX(main_loop_stream)
+    train_monitor_stream = ForceFloatX(train_monitor_stream)
+    valid_monitor_stream = ForceFloatX(valid_monitor_stream)
 
     old_model = None
     if oldmodel is not None:

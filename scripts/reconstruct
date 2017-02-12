@@ -36,12 +36,16 @@ def main(main_loop, data_stream, nrows, ncols, save_path):
     else:
         pyplot.savefig(save_path, transparent=True, bbox_inches='tight')
 
+def load_birds_64(batch_size, monitoring_batch_size, sources, rng):
+    return streams.load_generic_stream("birds_64", ("train","test","test"),
+        batch_size, monitoring_batch_size, sources, rng)
 
 if __name__ == "__main__":
     stream_functions = {
         'cifar10': streams.create_cifar10_data_streams,
         'svhn': streams.create_svhn_data_streams,
         'celeba': streams.create_celeba_data_streams,
+        'birds_64': load_birds_64,
         'tiny_imagenet': streams.create_tiny_imagenet_data_streams}
     parser = argparse.ArgumentParser(description="Plot reconstructions.")
     parser.add_argument("which_dataset", type=str,
