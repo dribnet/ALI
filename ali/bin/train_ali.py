@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 
 from blocks.algorithms import Adam
 from blocks.bricks import LeakyRectifier, Logistic
@@ -117,33 +118,33 @@ def create_model_brick(model_stream, image_size, z_dim):
 
     elif image_size == 256:
         encoder_layers = [
-            conv_brick(4, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_brick(1, 1, 2 * z_dim)]
 
         decoder_layers = [
-            conv_transpose_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_transpose_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_transpose_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_transpose_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_transpose_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_transpose_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_transpose_brick(4, 1, 64), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(7, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_transpose_brick(4, 1, 160), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_brick(1, 1, NUM_CHANNELS), Logistic()]
 
         x_disc_layers = [
-            conv_brick(4, 1, 64), LeakyRectifier(leak=LEAK),
-            conv_brick(7, 2, 128), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(4, 1, 160), LeakyRectifier(leak=LEAK),
+            conv_brick(7, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
+            conv_brick(6, 2, 160), bn_brick(), LeakyRectifier(leak=LEAK),
             conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(6, 2, 256), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(6, 2, 512), bn_brick(), LeakyRectifier(leak=LEAK),
-            conv_brick(4, 1, 1024), bn_brick(), LeakyRectifier(leak=LEAK)]
+            conv_brick(4, 1, 512), bn_brick(), LeakyRectifier(leak=LEAK)]
 
     print("Building network with {} enc, {} dec, and {} x_disc layers".format(
         len(encoder_layers), len(decoder_layers), len(x_disc_layers)))
@@ -259,6 +260,9 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
                                         split_names=splits)[0]
 
     main_loop_stream, train_monitor_stream, valid_monitor_stream = streams[:3]
+
+    # pickle "RuntimeError: maximum recursion depth exceeded" fix
+    sys.setrecursionlimit(1000000)
 
     old_model = None
     if oldmodel is not None:
