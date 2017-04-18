@@ -37,10 +37,7 @@ LEARNING_RATE = 1e-4
 BETA1 = 0.5
 LEAK = 0.02
 
-NCLASSES = 1024
-NEMB = 256
-
-def create_model_brick(model_stream, image_size, z_dim):
+def create_model_brick(model_stream, image_size, z_dim, n_classes, n_embed):
 
     if image_size == 64:
         encoder_layers = [
@@ -128,7 +125,7 @@ def create_model_brick(model_stream, image_size, z_dim):
 
     encoder_mapping = EncoderMapping(layers=encoder_layers,
                                      num_channels=NUM_CHANNELS,
-                                     n_emb=NEMB,
+                                     n_emb=n_embed,
                                      image_size=(image_size, image_size),
                                      weights_init=GAUSSIAN_INIT,
                                      biases_init=ZERO_INIT,
@@ -136,7 +133,7 @@ def create_model_brick(model_stream, image_size, z_dim):
     encoder = GaussianConditional(encoder_mapping, name='encoder')
 
     decoder = Decoder(
-        layers=decoder_layers, num_channels=z_dim + NEMB, image_size=(1, 1), use_bias=False,
+        layers=decoder_layers, num_channels=z_dim + n_embed, image_size=(1, 1), use_bias=False,
         name='decoder_mapping')
 
     x_discriminator = ConvolutionalSequence(
@@ -160,7 +157,7 @@ def create_model_brick(model_stream, image_size, z_dim):
         layers=layers,
         num_channels=(x_discriminator.get_dim('output')[0] +
                       z_discriminator.get_dim('output')[0]) +
-                      NEMB,
+                      n_embed,
         image_size=(1, 1),
         name='joint_discriminator')
 
@@ -169,7 +166,7 @@ def create_model_brick(model_stream, image_size, z_dim):
         name='discriminator')
 
     ali = ConditionalALI(encoder, decoder, discriminator,
-                         n_cond=NCLASSES, n_emb=NEMB,
+                         n_cond=n_classes, n_emb=n_embed,
                          weights_init=GAUSSIAN_INIT, biases_init=ZERO_INIT,
                          name='ali')
 
@@ -188,9 +185,9 @@ def create_model_brick(model_stream, image_size, z_dim):
     return ali
 
 
-def create_models(model_stream, image_size, z_dim, oldmodel=None):
+def create_models(model_stream, image_size, z_dim, n_classes, n_embed, oldmodel=None):
     if oldmodel is None:
-        ali = create_model_brick(model_stream, image_size, z_dim)
+        ali = create_model_brick(model_stream, image_size, z_dim, n_classes, n_embed)
     else:
         ali = oldmodel
 
@@ -225,7 +222,7 @@ def create_models(model_stream, image_size, z_dim, oldmodel=None):
 def create_main_loop(save_path, subdir, dataset, splits, color_convert,
         random_spread, uuid_str,
         batch_size, monitor_every, checkpoint_every, num_epochs,
-        image_size, z_dim, oldmodel):
+        image_size, z_dim, n_classes, n_embed, oldmodel):
 
     if dataset is None:
         streams = create_celeba_data_streams(batch_size, batch_size,
@@ -261,7 +258,7 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
             old_main_loop = load(src)
             old_model, = old_main_loop.model.top_bricks
 
-    model, bn_model, bn_updates = create_models(model_stream, image_size, z_dim, old_model)
+    model, bn_model, bn_updates = create_models(model_stream, image_size, z_dim, n_classes, n_embed, old_model)
     ali, = bn_model.top_bricks
     discriminator_loss, generator_loss = bn_model.outputs
 
@@ -342,6 +339,10 @@ if __name__ == "__main__":
                         default=100, help="Stop training after num-epochs.")
     parser.add_argument("--z-dim", type=int, dest="z_dim",
                         default=128, help="Z-vector dimension")
+    parser.add_argument("--n-classes", type=int, dest="n_classes",
+                        default=40, help="Size of native labels")
+    parser.add_argument("--n-embed", type=int, dest="n_embed",
+                        default=192, help="Embedding dim for conditioned var")
     parser.add_argument("--oldmodel", type=str, default=None,
                         help="Use a model file created by a previous run as\
                         a starting point for parameters")
@@ -352,4 +353,4 @@ if __name__ == "__main__":
         args.random_spread, args.uuid_str,
         args.batch_size, args.monitor_every,
         args.checkpoint_every, args.num_epochs, args.image_size,
-        args.z_dim, args.oldmodel).run()
+        args.z_dim, args.n_classes, args.n_embed, args.oldmodel).run()
