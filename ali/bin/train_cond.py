@@ -220,7 +220,7 @@ def create_models(model_stream, image_size, z_dim, n_classes, n_embed, oldmodel=
 
 
 def create_main_loop(save_path, subdir, dataset, splits, color_convert,
-        random_spread, uuid_str,
+        random_spread, uuid_str, random_label_strip, add_label_uncertainty,
         batch_size, monitor_every, checkpoint_every, num_epochs,
         image_size, z_dim, n_classes, n_embed, oldmodel):
 
@@ -236,7 +236,8 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
                                         stretch=n_classes,
                                         color_convert=color_convert,
                                         random_spread=random_spread,
-                                        random_label_dropping=True,
+                                        random_label_strip=random_label_strip,
+                                        add_label_uncertainty=add_label_uncertainty,
                                         uuid_str=uuid_str,
                                         split_names=splits)
         model_stream = create_custom_streams(filename=dataset,
@@ -328,6 +329,10 @@ if __name__ == "__main__":
     parser.add_argument('--random-spread', dest='random_spread',
                         default=False, action='store_true',
                         help="Label dropout.")
+    parser.add_argument("--random-label-strip", type=int, dest="random_label_strip",
+                        default=None, help="Frequency to strip all lablels in conditioning")
+    parser.add_argument("--add-label-uncertainty", type=int, dest="add_label_uncertainty",
+                        default=None, help="Add label uncertainty with provided frequency in conditioning")
     parser.add_argument('--uuid-str', dest='uuid_str', type=str,
                         default=None, help="pad labels with uuid")
     parser.add_argument("--batch-size", type=int, dest="batch_size",
@@ -353,6 +358,7 @@ if __name__ == "__main__":
     create_main_loop(args.model, args.subdir, args.dataset, splits,
         args.color_convert,
         args.random_spread, args.uuid_str,
+        args.random_label_strip, args.add_label_uncertainty,
         args.batch_size, args.monitor_every,
         args.checkpoint_every, args.num_epochs, args.image_size,
         args.z_dim, args.n_classes, args.n_embed, args.oldmodel).run()
