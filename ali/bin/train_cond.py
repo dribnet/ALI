@@ -26,7 +26,7 @@ from ali.conditional_bricks import (EncoderMapping, Decoder,
 from ali.streams import create_celeba_data_streams
 from ali.utils import get_log_odds, conv_brick, conv_transpose_brick, bn_brick
 
-from ali.interface import AliModel
+from ali.interface import AliCondModel
 from plat.training.samplecheckpoint import SampleCheckpoint
 from plat.fuel_helper import create_custom_streams
 
@@ -233,8 +233,10 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
                                         training_batch_size=batch_size,
                                         monitoring_batch_size=batch_size,
                                         include_targets=True,
+                                        stretch=n_classes,
                                         color_convert=color_convert,
                                         random_spread=random_spread,
+                                        random_label_dropping=True,
                                         uuid_str=uuid_str,
                                         split_names=splits)
         model_stream = create_custom_streams(filename=dataset,
@@ -285,16 +287,16 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
     checkpoint = Checkpoint(save_path, every_n_epochs=checkpoint_every,
         before_training=True, after_epoch=True, after_training=True,
         use_cpickle=True)
-    # sampling_checkpoint =  SampleCheckpoint(interface=AliModel, z_dim=z_dim,
-    #     image_size=(image_size, image_size), channels=NUM_CHANNELS,
-    #     dataset=dataset, split=splits[1], save_subdir=subdir,
-    #     before_training=True, after_epoch=True)
+    sampling_checkpoint =  SampleCheckpoint(interface=AliCondModel, z_dim=z_dim,
+        image_size=(image_size, image_size), channels=NUM_CHANNELS,
+        dataset=dataset, split=splits[1], save_subdir=subdir,
+        before_training=True, after_epoch=True)
 
     extensions = [
         Timing(),
         FinishAfter(after_n_epochs=num_epochs),
         checkpoint,
-        # sampling_checkpoint,
+        sampling_checkpoint,
         train_monitoring,
         valid_monitoring,
         Printing(),
