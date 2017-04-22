@@ -26,9 +26,10 @@ from ali.conditional_bricks import (EncoderMapping, Decoder,
 from ali.streams import create_celeba_data_streams
 from ali.utils import get_log_odds, conv_brick, conv_transpose_brick, bn_brick
 
-from ali.interface import AliCondModel
+from ali.interface import AliCondModel, AliCondModel2
 from plat.training.samplecheckpoint import SampleCheckpoint
 from plat.fuel_helper import create_custom_streams
+from ali.condsamplecheckpoint import CondSampleCheckpoint
 
 NUM_CHANNELS = 3
 GAUSSIAN_INIT = IsotropicGaussian(std=0.01)
@@ -240,6 +241,17 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
                                         add_label_uncertainty=add_label_uncertainty,
                                         uuid_str=uuid_str,
                                         split_names=splits)
+        cond_streams = create_custom_streams(filename=dataset,
+                                        training_batch_size=batch_size,
+                                        monitoring_batch_size=batch_size,
+                                        include_targets=True,
+                                        stretch=n_classes,
+                                        color_convert=color_convert,
+                                        random_spread=random_spread,
+                                        random_label_strip=0,
+                                        add_label_uncertainty=0,
+                                        uuid_str=uuid_str,
+                                        split_names=splits)
         model_stream = create_custom_streams(filename=dataset,
                                         training_batch_size=500,
                                         monitoring_batch_size=500,
@@ -253,6 +265,7 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
     main_loop_stream = ForceFloatX(main_loop_stream)
     train_monitor_stream = ForceFloatX(train_monitor_stream)
     valid_monitor_stream = ForceFloatX(valid_monitor_stream)
+    valid_cond_stream = ForceFloatX(cond_streams[2])
 
     old_model = None
     if oldmodel is not None:
@@ -292,12 +305,17 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
         image_size=(image_size, image_size), channels=NUM_CHANNELS,
         dataset=dataset, split=splits[1], save_subdir=subdir,
         before_training=True, after_epoch=True)
+    # cond_sampling_checkpoint =  CondSampleCheckpoint(interface=AliCondModel2, z_dim=z_dim,
+    #     image_size=(image_size, image_size), channels=NUM_CHANNELS,
+    #     datastream=valid_cond_stream, save_subdir=subdir,
+    #     before_training=True, after_epoch=True)
 
     extensions = [
         Timing(),
         FinishAfter(after_n_epochs=num_epochs),
         checkpoint,
         sampling_checkpoint,
+        # cond_sampling_checkpoint,
         train_monitoring,
         valid_monitoring,
         Printing(),

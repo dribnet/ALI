@@ -1,5 +1,6 @@
 """ Conditional ALI related Bricks"""
 
+import theano
 from theano import tensor
 from theano import (function, )
 
@@ -342,7 +343,7 @@ if __name__ == '__main__':
     x = tensor.tensor4('x')
     y = tensor.matrix('y')
 
-    embedder_test = function([y], embedder.apply(y))
+    embedder_test = function([y], embedder.apply(y), allow_input_downcast=True)
 
     test_labels = np.zeros(shape=(5, 10))
     idx = npr.randint(0, 9, size=5)
@@ -376,12 +377,13 @@ if __name__ == '__main__':
 
     encoder_mapping = EncoderMapping(layers=layers,
                                      num_channels=NUM_CHANNELS,
+                                     n_emb=128,
                                      image_size=IMAGE_SIZE, weights_init=WEIGHTS_INIT,
                                      biases_init=BIASES_INIT)
     encoder_mapping.initialize()
 
     embeddings = embedder.apply(y)
-    encoder_mapping_fun = function([x, y], encoder_mapping.apply(x, embeddings))
+    encoder_mapping_fun = function([x, y], encoder_mapping.apply(x, embeddings), allow_input_downcast=True)
     out = encoder_mapping_fun(features, test_labels)
     print(out.shape)
 
@@ -389,7 +391,7 @@ if __name__ == '__main__':
     embeddings = embedder.apply(y)
     encoder = GaussianConditional(mapping=encoder_mapping)
     encoder.initialize()
-    encoder_fun = function([x, y], encoder.apply(x, embeddings))
+    encoder_fun = function([x, y], encoder.apply(x, embeddings), allow_input_downcast=True)
     z_hat = encoder_fun(features, test_labels)
     # print(out)
     print(z_hat)
@@ -408,7 +410,7 @@ if __name__ == '__main__':
     decoder = Decoder(layers=layers, num_channels=(NLAT + NEMB), image_size=(1, 1),
                       weights_init=WEIGHTS_INIT, biases_init=BIASES_INIT)
     decoder.initialize()
-    decoder_fun = function([z, y], decoder.apply(z, embeddings))
+    decoder_fun = function([z, y], decoder.apply(z, embeddings), allow_input_downcast=True)
     out = decoder_fun(z_hat, test_labels)
 
     # Discriminator
@@ -452,7 +454,7 @@ if __name__ == '__main__':
                                           name='discriminator', weights_init=WEIGHTS_INIT,
                                           biases_init=BIASES_INIT)
     discriminator.initialize()
-    discriminator_fun = function([x, z, y], discriminator.apply(x, z, embeddings))
+    discriminator_fun = function([x, z, y], discriminator.apply(x, z, embeddings), allow_input_downcast=True)
     out = discriminator_fun(features, z_hat, test_labels)
     print(out.shape)
 
@@ -464,9 +466,10 @@ if __name__ == '__main__':
                          weights_init=WEIGHTS_INIT,
                          biases_init=BIASES_INIT)
     ali.initialize()
+    print("ACCESSING SIZES: {} and {}".format(ali.n_emb, ali.n_cond))
     # Computing Loss
     loss = ali.compute_losses(x, z, y)
-    loss_fun = function([x, z, y], loss)
+    loss_fun = function([x, z, y], loss, allow_input_downcast=True)
     out = loss_fun(features, z_hat, test_labels)
 
 
