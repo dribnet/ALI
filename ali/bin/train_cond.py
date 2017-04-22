@@ -301,7 +301,7 @@ def create_main_loop(save_path, subdir, dataset, splits, color_convert,
     checkpoint = Checkpoint(save_path, every_n_epochs=checkpoint_every,
         before_training=True, after_epoch=True, after_training=True,
         use_cpickle=True)
-    sampling_checkpoint =  SampleCheckpoint(interface=AliCondModel, z_dim=z_dim,
+    sampling_checkpoint =  SampleCheckpoint(interface=AliCondModel2, z_dim=z_dim,
         image_size=(image_size, image_size), channels=NUM_CHANNELS,
         dataset=dataset, split=splits[1], save_subdir=subdir,
         before_training=True, after_epoch=True)
